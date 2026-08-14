@@ -1,0 +1,5 @@
+# Isolate the desktop shell from the repo-root workspace:
+# an empty `packages` list makes this directory pnpm's own root, so
+# `pnpm install` here only resolves this single package instead of walking up
+# to the deepseek-harness monorepo.
+packages: []

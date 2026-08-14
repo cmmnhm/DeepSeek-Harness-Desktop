@@ -1,0 +1,9 @@
+# Node
+node_modules/
+
+# Electron / electron-builder output
+dist/
+
+# Pre-installed runtime payload (produced by scripts/prepare-runtime.mjs)
+resources/
+  !resources/.gitkeep

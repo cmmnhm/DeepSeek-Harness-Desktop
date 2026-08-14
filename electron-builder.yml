@@ -1,0 +1,60 @@
+# electron-builder config for the DeepSeek Harness desktop client.
+#
+# The heavy payload (harness deploy closure + optional Node/Python runtimes) is
+# produced by scripts/prepare-runtime.mjs into desktop/resources/ and embedded
+# as extraResources so the installer is fully offline / self-contained.
+
+appId: ai.deepseek.harness
+productName: DeepSeek Harness
+copyright: Copyright © 2026 DeepSeek AI
+
+directories:
+  output: dist
+  buildResources: assets
+
+files:
+  - main.mjs
+  - package.json
+
+# Everything the shell needs at runtime beyond its own code. `runtime` is the
+# pre-installed harness closure (node_modules + @deepseek-ai/dsh + web dist);
+# `node` and `python` are optional standalone runtimes bundled by
+# prepare-runtime.mjs so the end-user needs nothing installed.
+extraResources:
+  - from: resources/runtime
+    to: runtime
+    filter:
+      - "**/*"
+  - from: resources/node
+    to: node
+    filter:
+      - "**/*"
+  - from: resources/python
+    to: python
+    filter:
+      - "**/*"
+
+# The harness closure is shipped as extraResources (not inside the asar), so it
+# stays a plain directory the spawned child process can fully read/write.
+asar: true
+
+win:
+  target:
+    - target: zip
+      arch: [x64]
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-Setup-${version}.${ext}
+  shortcutName: DeepSeek Harness
+
+portable:
+  artifactName: ${productName}-Portable-${version}.${ext}
+
+# Squirrel-style support is avoided; a plain app icon is optional:
+# icon: assets/icon.ico

@@ -1,0 +1,20 @@
+{
+  "name": "dsh-desktop",
+  "version": "0.1.0-rc.5",
+  "private": true,
+  "description": "DeepSeek Harness desktop client — a thin Electron shell that launches the bundled `dsh web` harness runtime and renders its Web UI in a native window. Self-contained (NOT a pnpm workspace member).",
+  "type": "module",
+  "main": "main.mjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "start": "electron .",
+    "prepare:runtime": "node scripts/prepare-runtime.mjs",
+    "build:win": "electron-builder --win nsis portable"
+  },
+  "author": "DeepSeek",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}
