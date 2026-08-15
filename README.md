@@ -1,6 +1,14 @@
 # DeepSeek Harness — Desktop 客户端（Electron 薄外壳）
 
+> **⚠️ 注意**：本程序不是独立项目。需要先 `git clone https://github.com/deepseek-ai/deepseek-harness.git` 编译 Harness 源码，再将本目录（`desktop/`）拷贝到 Harness 仓库中进行编译，生成客户端可执行文件。
+
 把 DeepSeek Harness 的 `dsh web` 运行时以原生窗口形式交付的 **Electron 薄外壳**。
+
+![主界面](doc/pic1.png)
+
+![对话界面](doc/pic2.png)
+
+![设置界面](doc/pic3.png)
 
 Harness 本体是一个 Node 进程（`dsh web` = `--profile web`，boot host 运行时 + webserver +
 构建好的 React 前端，监听 `http://127.0.0.1:3080`）。所有重活都在这个进程里；本外壳只负责：
@@ -94,6 +102,19 @@ pnpm --dir desktop build:win
   （node-pty、koffi、better-sqlite3 等）是在打包机器的 Node 版本下构建的。若最终
   用户机不装 Node，请在打包机用 `DSH_VENDOR_NODE=1` 捆绑**同一个** Node 版本，
   使 ABI 匹配。开发模式不受此影响（直接用系统 Node）。
+- **Visual C++ 运行时（重要）**：闭包内的原生模块（尤其 koffi 驱动的"打开文件夹"
+  对话框）依赖 `msvcp140.dll / vcruntime140.dll / vcruntime140_1.dll`（VC++ 2015-2022
+  Redistributable）。**未安装该运行时的机器上，目录选择会失败**，报
+  `... worker exited before reporting a result`。`prepare:runtime` 会自动从构建机
+  `System32` 把这几个可再分发 DLL 拷贝到 `resources/node/`，`main.mjs` 将 `resources/node`
+  注入 harness 的 PATH；因此无需用户另行安装运行库。这些 DLL 属于可再分发组件，
+  可随客户端分发。
+- **原生选择器自动降级**：Windows 原生"打开文件夹"对话框在子进程里用 koffi 驱动
+  COM。若某台机器上它的依赖无论如何无法初始化（CRT/ABI 损坏、shell COM 异常等），
+  harness 启动时会先对原生对话框做一次**无窗口自检**；自检失败则自动改用
+  `browse` 交互（客户端内置的纯 Web 目录树，不依赖任何原生组件），保证在所有机器上
+  都能选择文件夹，而不是抛 `worker exited before reporting a result`。启动日志会打印
+  `falling back to the browse picker` 提示。
 - **退出清理**：窗口关闭/应用退出时，外壳会 `taskkill /T /F` 拉起的 harness
   进程组，避免遗留 node-pty / sandbox 子进程。
 - **自定义图标**：把 `desktop/assets/icon.ico` 放入并在 `electron-builder.yml` 的

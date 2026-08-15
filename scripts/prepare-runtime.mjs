@@ -229,11 +229,53 @@ async function prepareRuntime() {
     )
   }
 
+  // Microsoft Visual C++ runtime — REQUIRED so the native add-ons bundled in
+  // the closure (notably the koffi-backed Win32 folder dialog) keep loading on
+  // machines that do NOT have the VC++ 2015-2022 Redistributable installed.
+  // Without it the dialog worker aborts at the native boundary and folder
+  // picking fails with "worker exited before reporting a result".
+  await vendorVcRuntime()
+
   // Python runtime (optional, for the Python SDK / code-runtime offline use).
   await vendorPython()
 
   console.log('\nDone. Build the installer with:')
   console.log('    pnpm --dir desktop install && pnpm --dir desktop build:win')
+}
+
+// ---------------------------------------------------------------------------
+// 1b. Bundled Visual C++ runtime (required for native addons on any machine)
+// ---------------------------------------------------------------------------
+const VC_RUNTIME_DLLS = ['msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll']
+
+/**
+ * Copy the MSVC 2015-2022 runtime DLLs next to the bundled Node so the native
+ * add-ons (koffi folder dialog, node-pty, sqlite…) always resolve them — even
+ * on machines lacking the VC++ Redistributable. The DLLs are redistributable.
+ * Best-effort: warn and continue if the build machine lacks them.
+ */
+async function vendorVcRuntime() {
+  const system32 = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32')
+  const targetDir = path.join(resources, 'node') // beside bundled node.exe
+  const copied = []
+  for (const dll of VC_RUNTIME_DLLS) {
+    const src = path.join(system32, dll)
+    if (!existsSync(src)) {
+      console.log(`    (note: ${dll} not found in ${system32} — not bundled)`)
+      continue
+    }
+    mkdirSync(targetDir, { recursive: true })
+    const dest = path.join(targetDir, dll)
+    cpSync(src, dest)
+    copied.push(dll)
+  }
+  if (copied.length > 0) {
+    console.log(`    bundled VC++ runtime into resources/node: ${copied.join(', ')}`)
+  } else {
+    console.log(
+      '    (no VC++ runtime DLLs found to bundle — native addons on fresh machines may fail to load)',
+    )
+  }
 }
 
 // ---------------------------------------------------------------------------

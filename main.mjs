@@ -71,9 +71,18 @@ function resolveHarnessLaunch() {
   // Prefer the bundled Node runtime (fully offline). Fall back to the system
   // `node` when DSH_VENDOR_NODE was not used to vendor one — the closure is
   // self-contained either way; only the Node binary source differs.
-  const bundledNode = path.join(process.resourcesPath, 'node', 'node.exe')
+  const bundledNodeDir = path.join(process.resourcesPath, 'node')
+  const bundledNode = path.join(bundledNodeDir, 'node.exe')
   const nodeExe = existsSync(bundledNode) ? bundledNode : 'node'
   const env = { ...process.env }
+  // Put the bundled Node dir on PATH first. Besides hosting the bundled
+  // node.exe, prepare-runtime also drops the Microsoft VC++ 2015-2022 runtime
+  // DLLs (msvcp140/vcruntime140/*) there; PATH directories are part of the
+  // Windows DLL search order, so native add-ons (koffi folder dialog, etc.)
+  // always resolve the CRT even on machines without the redistributable.
+  if (existsSync(bundledNodeDir)) {
+    env.PATH = `${bundledNodeDir}${path.delimiter}${env.PATH ?? ''}`
+  }
   // If a Python runtime was bundled, expose it to the harness (used by the
   // Python SDK / code-runtime) as long as it is not already earlier on PATH.
   const bundledPython = path.join(process.resourcesPath, 'python')
